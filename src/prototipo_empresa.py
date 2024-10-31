@@ -8,25 +8,16 @@ import streamlit as st
 
 locale.setlocale(locale.LC_ALL, "pt_BR.UTF-8")
 
-# Carregar JSON a partir de um arquivo
 with open("dados_empresa.json", "r") as file:
     json_data = file.read()
 
-# Carregar JSON em um dicionário
 json_dict = json.loads(json_data)
-
-# Acessar o primeiro elemento do dicionário
 primeira_chave = next(iter(json_dict))
 processos = json_dict[primeira_chave]
-
-# Criar um DataFrame a partir da lista de processos
 df = pd.json_normalize(processos)
 df = df[:1000]
-print(f"Colunas: {df.columns.tolist()}")
 
 # ========================== Indicadores Gerais ==========================
-print("=== Indicadores Gerais ===")
-print("Total de processos:", len(df))
 total_processos = len(df)
 
 # Filtrar processos que tenham o CNPJ '90.400.888/0001-42'
@@ -51,8 +42,6 @@ qtd_polo_passivo = len(
         )
     ]
 )
-print("Quantidade Polo Ativo (CNPJ Alvo):", qtd_polo_ativo)
-print("Quantidade Polo Passivo (CNPJ Alvo):", qtd_polo_passivo)
 
 # Valor total de causa e valores por polo considerando o CNPJ alvo
 valor_total = df["valorCausa.valor"].sum()
@@ -70,9 +59,6 @@ valor_passivo = df[
         )
     )
 ]["valorCausa.valor"].sum()
-print("Valor Total de Causa: R$", valor_total)
-print("Valor Polo Ativo (CNPJ Alvo): R$", valor_ativo)
-print("Valor Polo Passivo (CNPJ Alvo): R$", valor_passivo)
 
 # Valor total de execução e valores por polo considerando o CNPJ alvo
 valor_execucao = df["statusPredictus.valorExecucao.valor"].sum()
@@ -90,48 +76,32 @@ valor_execucao_passivo = df[
         )
     )
 ]["statusPredictus.valorExecucao.valor"].sum()
-print("Valor de Execução Geral: R$", valor_execucao)
-print("Valor Polo Ativo (CNPJ Alvo): R$", valor_execucao_ativo)
-print("Valor Polo Passivo (CNPJ Alvo): R$", valor_execucao_passivo)
 
 # ========================== Distribuições ==========================
-print("\n=== Distribuições ===")
-
 # Distribuição por Tipo de Julgamento
-# Considerar a coluna 'statusPredictus.julgamentos', extraindo o 'statusJulgamento'
 df_julgamentos = df["statusPredictus.julgamentos"].explode().dropna().apply(pd.Series)
 distribuicao_tipo_julgamento = (
     df_julgamentos["tipoJulgamento"].value_counts().reset_index()
 )
 distribuicao_tipo_julgamento.columns = ["Categoria", "Total"]
-print("Distribuição por Tipo de Julgamento:")
-print(distribuicao_tipo_julgamento)
 
 # Distribuição por Ramo do Direito
 distribuicao_ramo_direito = (
     df["statusPredictus.ramoDireito"].value_counts().reset_index()
 )
 distribuicao_ramo_direito.columns = ["Categoria", "Total"]
-print("Distribuição por Ramo do Direito:")
-print(distribuicao_ramo_direito)
 
 # Distribuição por Status dos Processos
 distribuicao_status_processos = (
     df["statusPredictus.statusProcesso"].value_counts().reset_index()
 )
 distribuicao_status_processos.columns = ["Categoria", "Total"]
-print("Distribuição por Status dos Processos:")
-print(distribuicao_status_processos)
 
 # Distribuiçã por tribunal
 distribuicao_tribunal = df["tribunal"].value_counts().reset_index()
 distribuicao_tribunal.columns = ["Tribunal", "Total"]
-print("Distribuição por Tribunal:")
-print(distribuicao_tribunal)
 
 # ========================== Rankings ==========================
-print("=== Rankings ===")
-
 # Top 5 principais assuntos principais
 assuntos_principais = (
     df["assuntosCNJ"]
@@ -146,8 +116,6 @@ assuntos_principais = (
     .reset_index()
 )
 assuntos_principais.columns = ["Assunto", "Total"]
-print("Top 5 Assuntos Principais:")
-print(assuntos_principais)
 
 classes = df["classeProcessual.nome"].value_counts().reset_index()
 classes.columns = ["Classe Processual", "Total"]
@@ -158,17 +126,12 @@ df_partes = df["partes"].explode().apply(pd.Series)
 top_5_envolvidos_ativo = (
     df_partes[df_partes["polo"] == "ATIVO"]["nome"].value_counts().head(5)
 )
-print("Top 5 Principais Envolvidos por Polo Ativo:")
-print(top_5_envolvidos_ativo)
 
 top_5_envolvidos_passivo = (
     df_partes[df_partes["polo"] == "PASSIVO"]["nome"].value_counts().head(5)
 )
-print("Top 5 Principais Envolvidos por Polo Passivo:")
-print(top_5_envolvidos_passivo)
 
 # Top 5 advogados que mais aparecem por Polo Ativo e Polo Passivo
-
 df_partes_ativo = df_partes.loc[df_partes["polo"] == "ATIVO"]
 df_partes_passivo = df_partes.loc[df_partes["polo"] == "PASSIVO"]
 df_advogados_ativo = pd.json_normalize(
@@ -179,16 +142,10 @@ df_advogados_passivo = pd.json_normalize(
 )
 
 top_5_advogados_ativo = df_advogados_ativo["nome"].value_counts().head(5)
-print("Top 5 Advogados que Mais Aparecem por Polo Ativo:")
-print(top_5_advogados_ativo)
 
 top_5_advogados_passivo = df_advogados_passivo["nome"].value_counts().head(5)
-print("Top 5 Advogados que Mais Aparecem por Polo Passivo:")
-print(top_5_advogados_passivo)
 
 # ========================== Dados para Mapa ==========================
-print("\n=== Dados para Mapa ===")
-
 # Quantidade de processos por estado, % de cada estado e valor total de causa por estado
 df_estados = (
     df.groupby("uf")
@@ -202,8 +159,6 @@ df_estados = (
 df_estados["percentual"] = (
     df_estados["quantidade"] / df_estados["quantidade"].sum()
 ) * 100
-print("Dados para Mapa (Quantidade por Estado, Percentual e Valor Total de Causa):")
-print(df_estados)
 
 # ========================== Streamlit ==========================
 st.set_page_config(
@@ -383,20 +338,7 @@ with col1:
         mapa.update_traces(marker_line_width=0.5, text=df_estado_completo["Label"])
         st.plotly_chart(mapa, use_container_width=True)
 
-# Adjust index to start at 1
-# distribuicao_tipo_julgamento.index = distribuicao_tipo_julgamento.index + 1
-# distribuicao_tipo_julgamento.columns = ['Tipo Julgamento', 'Total']
-
 with col2:
-    # with st.container(border=1, height=500):
-    #     st.subheader("Distribuição por Tipo de Julgamento")
-    #     st.dataframe(
-    #         distribuicao_tipo_julgamento,
-    #         height=400,
-    #         width=600,
-    #         hide_index=False
-    #     )
-
     with st.container(border=1, height=500):
         st.subheader("Distribuição por Status do Processo")
         grafico_barras_horizontais = px.bar(
