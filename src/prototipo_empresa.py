@@ -134,10 +134,10 @@ df_partes_ativo = df_partes.loc[df_partes["polo"] == "ATIVO"]
 df_partes_passivo = df_partes.loc[df_partes["polo"] == "PASSIVO"]
 df_advogados_ativo = pd.json_normalize(
     df_partes_ativo.explode("advogados")["advogados"]
-)
+).dropna(subset=["oab"])
 df_advogados_passivo = pd.json_normalize(
     df_partes_passivo.explode("advogados")["advogados"]
-)
+).dropna(subset=["oab"])
 
 top_5_advogados_ativo = df_advogados_ativo["nome"].value_counts().head(5)
 
