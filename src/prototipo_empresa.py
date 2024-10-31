@@ -169,7 +169,7 @@ st.markdown("---")
 col1, col2, col3 = st.columns(3)
 
 
-def format_currency(value):
+def format_currency_brl(value):
     return format_currency(value, 'BRL', locale='pt_BR')
 
 # Card for Process Counts
@@ -189,27 +189,27 @@ with col1:
 with col2:
     with st.container(border=1):
         st.markdown(
-            f"<h1 style='color: #21332C;'>{format_currency(valor_total)}</h1>",
+            f"<h1 style='color: #21332C;'>{format_currency_brl(valor_total)}</h1>",
             unsafe_allow_html=True,
         )
         st.markdown("Valor das causas")
-        st.markdown(f"{format_currency(valor_ativo)} como autor")
+        st.markdown(f"{format_currency_brl(valor_ativo)} como autor")
         st.progress(valor_ativo / valor_total)
-        st.markdown(f"{format_currency(valor_passivo)} como réu")
+        st.markdown(f"{format_currency_brl(valor_passivo)} como réu")
         st.progress(valor_passivo / valor_total)
 
 # Card for Valor das Execuções
 with col3:
     with st.container(border=1):
         st.markdown(
-            f"<h1 style='color: #21332C;'>{format_currency(valor_execucao)}</h1>",
+            f"<h1 style='color: #21332C;'>{format_currency_brl(valor_execucao)}</h1>",
             unsafe_allow_html=True,
         )
         st.markdown("Valor das execuções")
-        st.markdown(f"{format_currency(valor_execucao_ativo)} como autor")
+        st.markdown(f"{format_currency_brl(valor_execucao_ativo)} como autor")
         percentage = valor_execucao_ativo / valor_execucao
         st.progress(percentage if percentage > 0 else 0)
-        st.markdown(f"{format_currency(valor_execucao_passivo)} como réu")
+        st.markdown(f"{format_currency_brl(valor_execucao_passivo)} como réu")
         percentage = valor_execucao_passivo / valor_execucao
         st.progress(percentage if percentage > 0 else 0)
 
