@@ -139,8 +139,9 @@ df_advogados_passivo = pd.json_normalize(
     df_partes_passivo.explode("advogados")["advogados"]
 ).dropna(subset=["oab.numero"])
 
-top_5_advogados_ativo = df_advogados_ativo["nome"].value_counts().head(5)
 
+# Contagem dos 5 advogados mais comuns com o novo formato
+top_5_advogados_ativo = df_advogados_ativo["nome"].value_counts().head(5)
 top_5_advogados_passivo = df_advogados_passivo["nome"].value_counts().head(5)
 
 # ========================== Dados para Mapa ==========================
