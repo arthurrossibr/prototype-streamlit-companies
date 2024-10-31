@@ -1,14 +1,12 @@
 import json
-import locale
+from babel.numbers import format_currency
 
 import pandas as pd
 import plotly.express as px
 import requests
 import streamlit as st
 
-locale.setlocale(locale.LC_ALL, "pt_BR.UTF-8")
-
-with open("dados_empresa.json", "r") as file:
+with open("src/dados_empresa.json", "r") as file:
     json_data = file.read()
 
 json_dict = json.loads(json_data)
@@ -172,8 +170,7 @@ col1, col2, col3 = st.columns(3)
 
 
 def format_currency(value):
-    return f"R$ {locale.format_string('%.2f', value, grouping=True)}"
-
+    return format_currency(value, 'BRL', locale='pt_BR')
 
 # Card for Process Counts
 with col1:
