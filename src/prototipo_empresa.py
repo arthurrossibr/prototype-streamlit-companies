@@ -338,7 +338,7 @@ with col1:
 
 with col2:
     with st.container(border=1, height=500):
-        st.subheader("Distribuição por Status do Processo")
+        st.subheader("Distribuição por Status do Julgamento")
         grafico_barras_horizontais = px.bar(
             distribuicao_tipo_julgamento,
             x="Total",
@@ -353,12 +353,12 @@ with col2:
 col1, col2 = st.columns(2)
 
 with col1:
-    with st.container(border=1, height=300):
+    with st.container(border=1, height=400):
         st.subheader("Distribuição de Assuntos Principais")
         st.dataframe(assuntos_principais, height=300, width=750, hide_index=True)
 
 with col2:
-    with st.container(border=1, height=300):
+    with st.container(border=1, height=400):
         st.subheader("Distribuição de Classes Processuais")
         st.dataframe(classes, height=300, width=750, hide_index=True)
 
@@ -370,7 +370,7 @@ top_5_envolvidos_ativo.columns = ["Parte", "Total"]
 top_5_envolvidos_ativo.index = top_5_envolvidos_ativo.index + 1
 
 with col1:
-    with st.container(border=1, height=300):
+    with st.container(border=1, height=400):
         st.subheader("Top 5 Partes - Polo Ativo")
         st.dataframe(
             top_5_envolvidos_ativo,
@@ -386,7 +386,7 @@ top_5_envolvidos_passivo.columns = ["Parte", "Total"]
 top_5_envolvidos_passivo.index = top_5_envolvidos_passivo.index + 1
 
 with col2:
-    with st.container(border=1, height=300):
+    with st.container(border=1, height=400):
         st.subheader("Top 5 Partes - Polo Passivo")
         st.dataframe(
             top_5_envolvidos_passivo,
@@ -399,7 +399,7 @@ top_5_advogados_ativo.columns = ["Parte", "Total"]
 top_5_advogados_ativo.index = top_5_advogados_ativo.index + 1
 
 with col1:
-    with st.container(border=1, height=300):
+    with st.container(border=1, height=400):
         st.subheader("Top 5 Advogados - Polo Ativo")
         st.dataframe(
             top_5_advogados_ativo,
@@ -412,10 +412,203 @@ top_5_advogados_passivo.columns = ["Parte", "Total"]
 top_5_advogados_passivo.index = top_5_advogados_passivo.index + 1
 
 with col2:
-    with st.container(border=1, height=300):
+    with st.container(border=1, height=400):
         st.subheader("Top 5 Advogados - Polo Passivo")
         st.dataframe(
             top_5_advogados_passivo,
             height=300,
             width=750,
         )
+
+# Acesso e conversão das datas, incluindo dataArquivamento dentro de statusPredictus
+df["dataDistribuicao"] = pd.to_datetime(df["dataDistribuicao"], errors="coerce")
+df["dataArquivamento"] = (
+    pd.to_datetime(df["statusPredictus.dataArquivamento"], errors="coerce")
+    if "statusPredictus.dataArquivamento" in df.columns
+    else None
+)
+
+# Verificação de dados válidos em `dataDistribuicao` e `dataArquivamento`
+if df["dataDistribuicao"].isnull().all():
+    st.error("Erro: Todas as datas de distribuição estão ausentes ou são inválidas.")
+else:
+    df["anoDistribuicao"] = df["dataDistribuicao"].dt.year.astype("Int64")
+    df["mesDistribuicao"] = df["dataDistribuicao"].dt.month.astype("Int64")
+
+# Só extrair anos e meses de arquivamento se houver dados válidos
+if "dataArquivamento" in df.columns and not df["dataArquivamento"].isnull().all():
+    df["anoArquivamento"] = df["dataArquivamento"].dt.year.astype("Int64")
+    df["mesArquivamento"] = df["dataArquivamento"].dt.month.astype("Int64")
+else:
+    st.warning(
+        "Dados de arquivamento ausentes ou inválidos. Gráficos podem não refletir informações completas."
+    )
+
+# ========================== Gráfico 1: Principais Assuntos por Período ==========================
+st.header("Análise por Período")
+
+anos_disponiveis = ["Todos os anos"] + sorted(df["anoDistribuicao"].dropna().unique())
+meses_disponiveis = ["Todos os meses"] + sorted(df["mesDistribuicao"].dropna().unique())
+
+col_grafico1, col_grafico2 = st.columns(2)
+
+# Configuração da primeira coluna para o gráfico de "Principais Assuntos"
+with col_grafico1:
+    col1, col2 = st.columns(2)
+    ano_selecionado = col1.selectbox(
+        "Selecione o ano para Principais Assuntos", anos_disponiveis, key="ano_assuntos"
+    )
+    meses_disponiveis_assuntos = (
+        ["Todos os meses"]
+        + sorted(
+            df[df["anoDistribuicao"] == ano_selecionado]["mesDistribuicao"]
+            .dropna()
+            .unique()
+        )
+        if ano_selecionado != "Todos os anos"
+        else meses_disponiveis
+    )
+    mes_selecionado = col2.selectbox(
+        "Selecione o mês", meses_disponiveis_assuntos, key="mes_assuntos"
+    )
+
+    if ano_selecionado == "Todos os anos":
+        df_assuntos_periodo = (
+            df
+            if mes_selecionado == "Todos os meses"
+            else df[df["mesDistribuicao"] == mes_selecionado]
+        )
+    else:
+        df_assuntos_periodo = (
+            df[
+                (df["anoDistribuicao"] == ano_selecionado)
+                & (df["mesDistribuicao"] == mes_selecionado)
+            ]
+            if mes_selecionado != "Todos os meses"
+            else df[df["anoDistribuicao"] == ano_selecionado]
+        )
+
+    df_assuntos_periodo = (
+        df_assuntos_periodo["assuntosCNJ"]
+        .explode()
+        .dropna()
+        .apply(
+            lambda x: (
+                x["titulo"]
+                if isinstance(x, dict) and x.get("ePrincipal", False)
+                else None
+            )
+        )
+        .dropna()
+        .value_counts()
+        .reset_index()
+    )
+    df_assuntos_periodo.columns = ["Assunto", "Total"]
+
+    titulo_assuntos = f"Principais Assuntos em {ano_selecionado}" + (
+        f" - Mês {mes_selecionado}" if mes_selecionado != "Todos os meses" else ""
+    )
+    st.subheader(titulo_assuntos)
+    grafico_assuntos = px.bar(
+        df_assuntos_periodo,
+        x="Assunto",
+        y="Total",
+        labels={"Assunto": "Assunto", "Total": "Total"},
+        text="Total",
+        color_discrete_sequence=["#45A874"],
+    )
+    st.plotly_chart(grafico_assuntos, use_container_width=True)
+
+# Configuração da segunda coluna para o gráfico de "Distribuídos x Arquivados"
+with col_grafico2:
+    col1, col2 = st.columns(2)
+    ano_selecionado_dist_arq = col1.selectbox(
+        "Selecione o ano para Distribuídos x Arquivados",
+        anos_disponiveis,
+        key="ano_dist_arq",
+    )
+    meses_disponiveis_dist_arq = (
+        ["Todos os meses"]
+        + sorted(
+            df[df["anoDistribuicao"] == ano_selecionado_dist_arq]["mesDistribuicao"]
+            .dropna()
+            .unique()
+        )
+        if ano_selecionado_dist_arq != "Todos os anos"
+        else meses_disponiveis
+    )
+    mes_selecionado_dist_arq = col2.selectbox(
+        "Selecione o mês", meses_disponiveis_dist_arq, key="mes_dist_arq"
+    )
+
+    if ano_selecionado_dist_arq == "Todos os anos":
+        df_distribuido_periodo = (
+            df
+            if mes_selecionado_dist_arq == "Todos os meses"
+            else df[df["mesDistribuicao"] == mes_selecionado_dist_arq]
+        )
+        df_arquivado_periodo = (
+            df
+            if mes_selecionado_dist_arq == "Todos os meses"
+            else df[df["mesArquivamento"] == mes_selecionado_dist_arq]
+        )
+    else:
+        df_distribuido_periodo = (
+            df[
+                (df["anoDistribuicao"] == ano_selecionado_dist_arq)
+                & (df["mesDistribuicao"] == mes_selecionado_dist_arq)
+            ]
+            if mes_selecionado_dist_arq != "Todos os meses"
+            else df[df["anoDistribuicao"] == ano_selecionado_dist_arq]
+        )
+        df_arquivado_periodo = (
+            df[
+                (df["anoArquivamento"] == ano_selecionado_dist_arq)
+                & (df["mesArquivamento"] == mes_selecionado_dist_arq)
+            ]
+            if mes_selecionado_dist_arq != "Todos os meses"
+            else df[df["anoArquivamento"] == ano_selecionado_dist_arq]
+        )
+
+    df_distribuido_agrupado = (
+        df_distribuido_periodo.groupby("mesDistribuicao")
+        .size()
+        .reset_index(name="Distribuídos")
+    )
+    df_arquivado_agrupado = (
+        df_arquivado_periodo.groupby("mesArquivamento")
+        .size()
+        .reset_index(name="Arquivados")
+    )
+    df_dist_arq = pd.merge(
+        df_distribuido_agrupado,
+        df_arquivado_agrupado,
+        left_on="mesDistribuicao",
+        right_on="mesArquivamento",
+        how="outer",
+    )
+    df_dist_arq["Mes"] = (
+        df_dist_arq["mesDistribuicao"]
+        .fillna(df_dist_arq["mesArquivamento"])
+        .astype(int)
+    )
+    df_dist_arq = df_dist_arq.sort_values("Mes")
+
+    titulo_dist_arq = (
+        f"Processos Distribuídos x Arquivados em {ano_selecionado_dist_arq}"
+        + (
+            f" - Mês {mes_selecionado_dist_arq}"
+            if mes_selecionado_dist_arq != "Todos os meses"
+            else ""
+        )
+    )
+    st.subheader(titulo_dist_arq)
+    grafico_dist_arq = px.bar(
+        df_dist_arq,
+        x="Mes",
+        y=["Distribuídos", "Arquivados"],
+        barmode="group",
+        labels={"Mes": "Mês", "value": "Total de Processos", "variable": "Status"},
+        color_discrete_sequence=["#45A874", "#2A4C3F"],
+    )
+    st.plotly_chart(grafico_dist_arq, use_container_width=True)
